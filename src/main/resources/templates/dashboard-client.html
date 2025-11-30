@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MedLink — Client Dashboard</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+    />
+    <!-- Leaflet CSS for map -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-sA+e2k6JkYyZg6m1A9Jk0Vgqz7m1bN9G2v1qk2U5rYQ="
+      crossorigin=""
+    />
+    <style>
+      :root {
+        --brand: #0d9488; /* teal */
+        --brand-600: #0f766e;
+        --accent: #2dd4bf;
+        --bg: linear-gradient(180deg, #f7fdfa 0%, #f0fdfa 100%);
+        --card-bg: rgba(255, 255, 255, 0.9);
+        --muted: #6b7280;
+        --text: #0f172a;
+        --border: rgba(15, 23, 42, 0.08);
+        --shadow: 0 10px 30px rgba(13, 110, 253, 0.06);
+      }
+      body.dark {
+        --bg: linear-gradient(180deg, #031017 0%, #02121a 100%);
+        --card-bg: rgba(6, 10, 15, 0.7);
+        --muted: #9fb6bb;
+        --text: #e6f3f2;
+        --border: rgba(255, 255, 255, 0.06);
+        --shadow: 0 12px 40px rgba(2, 10, 12, 0.6);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto,
+          Arial;
+        background: var(--bg);
+        -webkit-font-smoothing: antialiased;
+        color: var(--text);
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        min-height: 100vh;
+        .card > strong {
+          font-weight: 700;
+          letter-spacing: 0.2px;
+        }
+        .section-title {
+          font-size: 20px;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+        }
+      }
+      .sidebar {
+        background: var(--card-bg);
+        .col-5 {
+          grid-column: span 5;
+        }
+        border-right: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        input.btn,
+        select.btn {
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input.btn:focus,
+        select.btn:focus {
+          outline: none;
+          border-color: var(--brand-600);
+          box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+        }
+        label.muted {
+          display: block;
+          margin-bottom: 6px;
+        }
+        .actions-row {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        .status {
+          font-size: 12px;
+        }
+        padding: 20px 16px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        font-weight: 800;
+        color: var(--brand-600);
+      }
+      .nav {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0 0 0;
+      }
+      .nav a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        margin-bottom: 6px;
+        border-radius: 10px;
+        color: var(--text);
+        text-decoration: none;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.6);
+      }
+      .nav a:hover {
+        border-color: var(--brand-600);
+        box-shadow: 0 6px 18px rgba(13, 148, 136, 0.12);
+      }
+      .nav a.active {
+        background: linear-gradient(90deg, var(--brand), var(--accent));
+        color: #fff;
+        border: none;
+      }
+      .main {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .main .kpis {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 16px;
+      }
+      .kpi {
+        grid-column: span 4;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        padding: 14px;
+      }
+      .kpi .label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .kpi .value {
+        font-size: 24px;
+        font-weight: 800;
+        margin-top: 4px;
+        color: var(--brand-600);
+      }
+      .kpi .sub {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        padding: 16px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 16px;
+      }
+      .col-4 {
+        grid-column: span 4;
+      }
+      .col-8 {
+        grid-column: span 8;
+      }
+      .btn {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 14px;
+        background: #fff;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: linear-gradient(90deg, var(--brand), var(--accent));
+        color: #fff;
+        border: none;
+      }
+      .muted {
+        color: var(--muted);
+      }
+
+      /* Map & search specific */
+      .doctor-map {
+        width: 100%;
+        height: 480px;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .doctor-results {
+        max-height: 480px;
+        overflow: auto;
+        display: grid;
+        gap: 8px;
+      }
+      .doctor-card {
+        padding: 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid var(--border);
+      }
+      .doctor-card button {
+        margin-left: 6px;
+      }
+
+      @media (max-width: 980px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          position: relative;
+          height: auto;
+        }
+        .doctor-map {
+          height: 320px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <i
+            class="bi bi-heart-pulse-fill center"
+            style="color: var(--brand)"
+          ></i>
+          MedLink
+        </div>
+        <div
+          style="
+            display: flex;
+            align-items: left;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+          "
+        >
+          <button id="theme-toggle" class="btn" title="Toggle theme">
+            <i id="theme-icon" class="bi bi-moon-fill"></i>
+          </button>
+        </div>
+        <nav>
+          <ul class="nav">
+            <li>
+              <a href="#overview" data-section="overview" class="active"
+                ><i class="bi bi-grid-1x2-fill"></i> Overview</a
+              >
+            </li>
+            <li>
+              <a href="#prescriptions" data-section="prescriptions"
+                ><i class="bi bi-capsule-pill"></i> My prescriptions</a
+              >
+            </li>
+            <li>
+              <a href="#history" data-section="history"
+                ><i class="bi bi-file-medical"></i> My medical history</a
+              >
+            </li>
+            <li>
+              <a href="#messages" data-section="messages"
+                ><i class="bi bi-chat-dots"></i> Messages</a
+              >
+            </li>
+            <li>
+              <a href="#search" data-section="search"
+                ><i class="bi bi-search"></i> Search doctors</a
+              >
+            </li>
+            <li>
+              <a href="#settings" data-section="settings"
+                ><i class="bi bi-gear"></i> Settings</a
+              >
+            </li>
+            <li>
+              <a href="#logout" id="logout"
+                ><i class="bi bi-box-arrow-right"></i> Logout</a
+              >
+            </li>
+          </ul>
+        </nav>
+      </aside>
+      <main class="main">
+        <div class="topbar">
+          <h1 id="dashboard-title" style="margin: 0">Client Dashboard</h1>
+        </div>
+
+        <section id="section-overview" class="card">
+          <h2 class="section-title">Overview</h2>
+          <div class="kpis" style="margin-top: 4px">
+            <div class="kpi">
+              <div class="label">Prescriptions</div>
+              <div class="value" id="stat-prescriptions">—</div>
+              <div class="sub">Active and pending</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Lab Results</div>
+              <div class="value" id="stat-labs">—</div>
+              <div class="sub">Recent results</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Appointments</div>
+              <div class="value" id="stat-appointments">—</div>
+              <div class="sub">Upcoming visits</div>
+            </div>
+          </div>
+        </section>
+
+        <section id="section-prescriptions" class="card" style="display: none">
+          <h2 class="section-title">My prescriptions</h2>
+          <div class="grid" style="align-items: end; margin-bottom: 8px">
+            <div class="col-4">
+              <label class="muted">Search</label>
+              <input
+                id="rx-search"
+                class="btn"
+                type="text"
+                placeholder="Search by medication or doctor"
+                style="width: 100%"
+              />
+            </div>
+            <div class="col-3">
+              <label class="muted">Status</label>
+              <select id="rx-status" class="btn" style="width: 100%">
+                <option value="">All</option>
+                <option value="PENDING">Pending</option>
+                <option value="ACTIVE">Active</option>
+                <option value="EXPIRED">Expired</option>
+                <option value="REFILL_REQUESTED">Refill requested</option>
+              </select>
+            </div>
+            <div class="col-2">
+              <label class="muted">From</label>
+              <input id="rx-from" class="btn" type="date" style="width: 100%" />
+            </div>
+            <div class="col-2">
+              <label class="muted">To</label>
+              <input id="rx-to" class="btn" type="date" style="width: 100%" />
+            </div>
+            <div class="col-1">
+              <button id="rx-clear" class="btn" style="width: 100%">
+                Clear
+              </button>
+            </div>
+          </div>
+          <div
+            id="rx-list"
+            class="grid"
+            style="grid-template-columns: repeat(12, 1fr); gap: 12px"
+          >
+            <!-- items injected here -->
+          </div>
+          <div
+            id="rx-empty"
+            class="muted"
+            style="margin-top: 8px; display: none"
+          >
+            No prescriptions found.
+          </div>
+        </section>
+
+        <section id="section-history" class="card" style="display: none">
+          <h2 style="margin: 0 0 8px 0">My medical history</h2>
+          <p class="muted">Visits, conditions and procedures timeline.</p>
+        </section>
+
+        <section id="section-messages" class="card" style="display: none">
+          <h2 style="margin: 0 0 8px 0">Messages</h2>
+          <p class="muted">Secure messages between you and your caregivers.</p>
+        </section>
+
+        <!-- New Search doctors section -->
+        <section id="section-search" class="card" style="display: none">
+          <h2 class="section-title">Find a doctor</h2>
+          <p class="muted">
+            Search doctors on the map and filter by specialty, distance and
+            rating.
+          </p>
+
+          <div class="grid" style="margin-top: 12px; align-items: start">
+            <div class="col-4">
+              <div style="display: grid; gap: 8px">
+                <div>
+                  <label class="muted">Search</label>
+                  <input
+                    id="doc-search"
+                    class="btn"
+                    type="text"
+                    placeholder="Name or clinic"
+                    style="width: 100%"
+                  />
+                </div>
+                <div>
+                  <label class="muted">Specialty</label>
+                  <select id="doc-specialty" class="btn" style="width: 100%">
+                    <option value="">Any</option>
+                    <option>General Practitioner</option>
+                    <option>Cardiology</option>
+                    <option>Dermatology</option>
+                    <option>Pediatrics</option>
+                    <option>Psychiatry</option>
+                  </select>
+                </div>
+                <div style="display: flex; gap: 8px">
+                  <div style="flex: 1">
+                    <label class="muted">Max distance (km)</label>
+                    <select id="doc-distance" class="btn" style="width: 100%">
+                      <option value="5">5</option>
+                      <option value="10" selected>10</option>
+                      <option value="25">25</option>
+                      <option value="50">50</option>
+                    </select>
+                  </div>
+                  <div style="flex: 1">
+                    <label class="muted">Min rating</label>
+                    <select id="doc-rating" class="btn" style="width: 100%">
+                      <option value="0">Any</option>
+                      <option value="3">3+</option>
+                      <option value="4">4+</option>
+                      <option value="4.5">4.5+</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <button id="doc-search-btn" class="btn btn-primary">
+                    Search
+                  </button>
+                  <button id="doc-clear-btn" class="btn">Clear</button>
+                </div>
+                <div
+                  id="doc-status"
+                  class="muted"
+                  style="margin-top: 6px"
+                ></div>
+
+                <div style="margin-top: 8px">
+                  <strong>Results</strong>
+                  <div
+                    id="doctor-results"
+                    class="doctor-results"
+                    style="margin-top: 8px"
+                  >
+                    <!-- doctor cards added here -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-8">
+              <div id="doctor-map" class="doctor-map"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="section-settings" class="card" style="display: none">
+          <h2 class="section-title">Settings</h2>
+          <p class="muted">Manage account preferences.</p>
+          <div class="grid" style="margin-top: 8px">
+            <div class="col-8 col-5">
+              <div class="card">
+                <strong>General</strong>
+                <form id="profile-form" style="margin-top: 8px">
+                  <div
+                    class="grid"
+                    style="grid-template-columns: repeat(3, 1fr); gap: 12px"
+                  >
+                    <div style="grid-column: 1; grid-row: 1">
+                      <label class="muted">Name</label>
+                      <input
+                        id="inp-name"
+                        class="btn"
+                        type="text"
+                        placeholder="Full name"
+                        style="width: 100%"
+                      />
+                    </div>
+                    <div style="grid-column: 1; grid-row: 2">
+                      <label class="muted">Phone</label>
+                      <input
+                        id="inp-phone"
+                        class="btn"
+                        type="text"
+                        placeholder="Phone number"
+                        style="width: 100%"
+                      />
+                    </div>
+                    <div style="grid-column: 1; grid-row: 3">
+                      <label class="muted">Email</label>
+                      <input
+                        id="inp-email"
+                        class="btn"
+                        type="email"
+                        placeholder="email@example.com"
+                        style="width: 100%"
+                      />
+                    </div>
+
+                    <div
+                      style="grid-column: 1 / span 3; margin-top: 10px"
+                      class="actions-row"
+                    >
+                      <button type="submit" class="btn btn-primary">
+                        Save changes
+                      </button>
+                      <span id="profile-status" class="muted status"></span>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="card">
+                <strong>Security</strong>
+                <form id="password-form" style="margin-top: 8px">
+                  <label class="muted">Current password</label>
+                  <input
+                    id="pwd-current"
+                    class="btn"
+                    type="password"
+                    placeholder="Current password"
+                    style="width: 100%"
+                  />
+                  <label class="muted" style="margin-top: 6px; display: block"
+                    >New password</label
+                  >
+                  <input
+                    id="pwd-new"
+                    class="btn"
+                    type="password"
+                    placeholder="New password"
+                    style="width: 100%"
+                  />
+                  <div class="actions-row" style="margin-top: 10px">
+                    <button type="submit" class="btn btn-primary">
+                      Update password
+                    </button>
+                    <span id="password-status" class="muted status"></span>
+                  </div>
+                </form>
+              </div>
+              <div class="card" style="margin-top: 12px">
+                <strong>Preferences</strong>
+                <div
+                  style="
+                    margin-top: 8px;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 12px;
+                  "
+                >
+                  <div>
+                    <label class="muted">Language</label>
+                    <select id="pref-language" class="btn" style="width: 100%">
+                      <option value="en">English</option>
+                      <option value="fr">Français</option>
+                      <option value="ar">العربية</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="muted">Theme</label>
+                    <select id="pref-theme" class="btn" style="width: 100%">
+                      <option value="system">System</option>
+                      <option value="light">Light</option>
+                      <option value="dark">Dark</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="actions-row" style="margin-top: 10px">
+                  <button class="btn" id="save-prefs">Save preferences</button>
+                  <button class="btn" id="clear-cache">Clear cache</button>
+                  <button class="btn" id="clear-token">Clear token</button>
+                  <span id="prefs-status" class="muted status"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-o9N1j8gkT2cGz7gqed0zqj0vO1yYJY5xR3m6tzh3kz0="
+      crossorigin=""
+    ></script>
+
+    <script>
+      // Theme toggle (same behavior as login)
+      (function () {
+        const storageKey = "medlink-theme";
+        const body = document.body;
+        const toggle = document.getElementById("theme-toggle");
+        const icon = document.getElementById("theme-icon");
+        const prefersDarkMQ =
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)");
+        function setIcon(isDark) {
+          if (!icon) return;
+          icon.className = isDark ? "bi bi-sun-fill" : "bi bi-moon-fill";
+        }
+        function applyTheme(isDark) {
+          if (isDark) body.classList.add("dark");
+          else body.classList.remove("dark");
+          setIcon(isDark);
+        }
+        document.addEventListener("DOMContentLoaded", function () {
+          const stored = localStorage.getItem(storageKey);
+          const prefersDark = prefersDarkMQ && prefersDarkMQ.matches;
+          const isDark = stored ? stored === "dark" : prefersDark;
+          applyTheme(isDark);
+          if (!stored && prefersDarkMQ) {
+            prefersDarkMQ.addEventListener("change", (e) =>
+              applyTheme(e.matches)
+            );
+          }
+        });
+        if (toggle) {
+          toggle.addEventListener("click", function () {
+            const isDark = body.classList.toggle("dark");
+            localStorage.setItem(storageKey, isDark ? "dark" : "light");
+            setIcon(isDark);
+          });
+        }
+      })();
+
+      // Basic SPA-like section switching and auth token usage
+      (function () {
+        const token = localStorage.getItem("authToken");
+        const userEmailEl = document.getElementById("user-email");
+        if (!token) {
+          // If no token, send to login (can relax during UI dev)
+          // location.href = '/auth/login';
+        }
+        if (userEmailEl) {
+          userEmailEl.textContent = "Signed in";
+        }
+
+        const links = document.querySelectorAll(".nav a[data-section]");
+        const sections = {
+          overview: document.getElementById("section-overview"),
+          prescriptions: document.getElementById("section-prescriptions"),
+          history: document.getElementById("section-history"),
+          messages: document.getElementById("section-messages"),
+          search: document.getElementById("section-search"),
+          settings: document.getElementById("section-settings"),
+        };
+        function show(section) {
+          Object.entries(sections).forEach(([k, el]) => {
+            if (!el) return;
+            el.style.display = k === section ? "" : "none";
+          });
+          links.forEach((a) =>
+            a.classList.toggle(
+              "active",
+              a.getAttribute("data-section") === section
+            )
+          );
+        }
+        links.forEach((a) =>
+          a.addEventListener("click", (e) => {
+            e.preventDefault();
+            show(a.getAttribute("data-section"));
+          })
+        );
+        show("overview");
+
+        // Load user details into Settings by decoding JWT uid and calling /users/{id}
+        async function loadUserDetails() {
+          try {
+            const t = localStorage.getItem("authToken");
+            console.log(t);
+            if (!t) return;
+            const parts = t.split(".");
+            if (parts.length !== 3) return;
+            const payload = JSON.parse(
+              atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
+            );
+            console.log(payload);
+            const uid = payload.userId;
+            console.log(uid);
+            const role = payload.role;
+            if (!uid) return;
+            const res = await fetch(`/users/${uid}`, {
+              headers: { Authorization: `Bearer ${t}` },
+            });
+            if (!res.ok) return;
+            const user = await res.json();
+            const name = user.username;
+            const email = user.email || user.username || "";
+            const phone = user.phone || user.phoneNumber || "";
+            // populate inputs
+            const nameInp = document.getElementById("inp-name");
+            const emailInp = document.getElementById("inp-email");
+            const phoneInp = document.getElementById("inp-phone");
+            if (nameInp) nameInp.value = name;
+            if (emailInp) emailInp.value = email;
+            if (phoneInp) phoneInp.value = phone;
+            // role display in sidebar info
+
+            const roleEl = document.getElementById("profile-role");
+            if (roleEl) roleEl.textContent = user.role || role || "—";
+            if (userEmailEl2) userEmailEl2.textContent = email;
+            document.getElementById("dashboard-title").textContent =
+              name + " , Dashboard";
+            // cache user id for later updates
+            sessionStorage.setItem("uid", String(uid));
+          } catch (e) {
+            // ignore for now
+          }
+        }
+        loadUserDetails();
+
+        // Prescriptions: fetch and filter
+        let rxAll = [];
+        function renderRx(items) {
+          const container = document.getElementById("rx-list");
+          const empty = document.getElementById("rx-empty");
+          if (!container) return;
+          container.innerHTML = "";
+          if (!items || items.length === 0) {
+            if (empty) empty.style.display = "";
+            return;
+          }
+          if (empty) empty.style.display = "none";
+          items.forEach((rx) => {
+            const card = document.createElement("div");
+            card.className = "card col-4";
+            const name =
+              rx.medicationName || rx.drug || rx.name || "Prescription";
+            const doctor =
+              (rx.doctor && (rx.doctor.name || rx.doctor.fullName)) ||
+              rx.doctorName ||
+              "-";
+            const status =
+              rx.status || (rx.prescriptionStatus || {}).name || "-";
+            const date = rx.date || rx.createdAt || rx.issueDate || null;
+            card.innerHTML = `
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong>${name}</strong>
+                <span class="muted" style="font-size:12px;">${status}</span>
+              </div>
+              <div class="muted" style="margin-top:6px;">Doctor: ${doctor}</div>
+              ${
+                date
+                  ? `<div class="muted" style="margin-top:4px;">Date: ${new Date(
+                      date
+                    ).toLocaleDateString()}</div>`
+                  : ""
+              }
+              <div style="margin-top:8px;" class="actions-row">
+                <button class="btn">View</button>
+                ${
+                  rx.canRequestRefill
+                    ? '<button class="btn">Request refill</button>'
+                    : ""
+                }
+              </div>
+            `;
+            container.appendChild(card);
+          });
+        }
+        function applyRxFilters() {
+          const q = (
+            document.getElementById("rx-search")?.value || ""
+          ).toLowerCase();
+          const st = document.getElementById("rx-status")?.value || "";
+          const from = document.getElementById("rx-from")?.value || "";
+          const to = document.getElementById("rx-to")?.value || "";
+          const fromTs = from ? Date.parse(from) : null;
+          const toTs = to ? Date.parse(to) : null;
+          const filtered = rxAll.filter((rx) => {
+            const name = (
+              rx.medicationName ||
+              rx.drug ||
+              rx.name ||
+              ""
+            ).toLowerCase();
+            const doctor = (
+              (rx.doctor && (rx.doctor.name || rx.doctor.fullName)) ||
+              rx.doctorName ||
+              ""
+            ).toLowerCase();
+            const status = (
+              rx.status ||
+              (rx.prescriptionStatus || {}).name ||
+              ""
+            ).toUpperCase();
+            const dateRaw = rx.date || rx.createdAt || rx.issueDate || null;
+            const dateTs = dateRaw ? Date.parse(dateRaw) : null;
+            const matchesQuery = !q || name.includes(q) || doctor.includes(q);
+            const matchesStatus = !st || status === st.toUpperCase();
+            const matchesFrom = !fromTs || (dateTs && dateTs >= fromTs);
+            const matchesTo = !toTs || (dateTs && dateTs <= toTs);
+            return matchesQuery && matchesStatus && matchesFrom && matchesTo;
+          });
+          renderRx(filtered);
+        }
+        async function fetchRx() {
+          try {
+            const t = localStorage.getItem("authToken");
+            if (!t) return;
+            const uid = sessionStorage.getItem("uid");
+            // Try user-scoped endpoint first, fallback to generic
+            let res = await fetch(`/users/${uid}/prescriptions`, {
+              headers: { Authorization: `Bearer ${t}` },
+            });
+            if (!res.ok) {
+              res = await fetch(
+                `/prescriptions?userId=${encodeURIComponent(uid || "")}`,
+                { headers: { Authorization: `Bearer ${t}` } }
+              );
+            }
+            if (!res.ok) return;
+            rxAll = await res.json();
+            applyRxFilters();
+          } catch (e) {
+            /* ignore */
+          }
+        }
+        // Hook filters
+        ["rx-search", "rx-status", "rx-from", "rx-to"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener("input", applyRxFilters);
+        });
+        const clearBtn = document.getElementById("rx-clear");
+        if (clearBtn)
+          clearBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            ["rx-search", "rx-status", "rx-from", "rx-to"].forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) el.value = id === "rx-status" ? "" : "";
+            });
+            applyRxFilters();
+          });
+        // Load prescriptions when opening the tab and after user details loaded
+        document
+          .querySelector('a[data-section="prescriptions"]')
+          .addEventListener("click", fetchRx);
+        // Also fetch once after details are loaded
+        setTimeout(fetchRx, 500);
+
+        // Save profile changes
+        const profileForm = document.getElementById("profile-form");
+        if (profileForm)
+          profileForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const t = localStorage.getItem("authToken");
+            const uid = sessionStorage.getItem("uid");
+            const status = document.getElementById("profile-status");
+            if (!t || !uid) {
+              if (status) status.textContent = "Not authenticated";
+              return;
+            }
+            const body = {
+              name: (document.getElementById("inp-name").value || "").trim(),
+              email: (document.getElementById("inp-email").value || "").trim(),
+              phone: (document.getElementById("inp-phone").value || "").trim(),
+            };
+            try {
+              const res = await fetch(`/users/${uid}`, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${t}`,
+                },
+                body: JSON.stringify(body),
+              });
+              if (res.ok) {
+                if (status) status.textContent = "Saved";
+                loadUserDetails();
+              } else {
+                const text = await res.text();
+                if (status) status.textContent = `Error: ${text || res.status}`;
+              }
+            } catch (err) {
+              if (status) status.textContent = "Network error";
+            }
+          });
+
+        // Change password
+        const pwdForm = document.getElementById("password-form");
+        if (pwdForm)
+          pwdForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const t = localStorage.getItem("authToken");
+            const status = document.getElementById("password-status");
+            const current = document.getElementById("pwd-current").value;
+            const next = document.getElementById("pwd-new").value;
+            if (!t) {
+              if (status) status.textContent = "Not authenticated";
+              return;
+            }
+            if (!current || !next) {
+              if (status) status.textContent = "Enter both passwords";
+              return;
+            }
+            try {
+              const res = await fetch("/auth/change-password", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${t}`,
+                },
+                body: JSON.stringify({
+                  currentPassword: current,
+                  newPassword: next,
+                }),
+              });
+              if (res.ok) {
+                if (status) status.textContent = "Password updated";
+              } else {
+                const text = await res.text();
+                if (status) status.textContent = `Error: ${text || res.status}`;
+              }
+            } catch (err) {
+              if (status) status.textContent = "Network error";
+            }
+          });
+
+        // Preferences
+        const languageSel = document.getElementById("pref-language");
+        const themeSel = document.getElementById("pref-theme");
+        const savePrefsBtn = document.getElementById("save-prefs");
+        const prefsStatus = document.getElementById("prefs-status");
+        const cacheBtn = document.getElementById("clear-cache");
+        // init from storage
+        const storedLang = localStorage.getItem("medlink-language");
+        if (languageSel && storedLang) languageSel.value = storedLang;
+        const storedTheme = localStorage.getItem("medlink-theme");
+        if (themeSel && storedTheme)
+          themeSel.value =
+            storedTheme === "dark"
+              ? "dark"
+              : storedTheme === "light"
+              ? "light"
+              : "system";
+        function applyThemePref(val) {
+          if (val === "dark") {
+            document.body.classList.add("dark");
+          } else if (val === "light") {
+            document.body.classList.remove("dark");
+          } else {
+            const prefersDarkMQ =
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)");
+            const prefersDark = prefersDarkMQ && prefersDarkMQ.matches;
+            if (prefersDark) document.body.classList.add("dark");
+            else document.body.classList.remove("dark");
+          }
+        }
+        if (savePrefsBtn)
+          savePrefsBtn.addEventListener("click", () => {
+            const lang = languageSel ? languageSel.value : "en";
+            const theme = themeSel ? themeSel.value : "system";
+            localStorage.setItem("medlink-language", lang);
+            localStorage.setItem(
+              "medlink-theme",
+              theme === "system"
+                ? document.body.classList.contains("dark")
+                  ? "dark"
+                  : "light"
+                : theme
+            );
+            applyThemePref(theme);
+            if (prefsStatus) prefsStatus.textContent = "Preferences saved";
+          });
+        if (cacheBtn)
+          cacheBtn.addEventListener("click", () => {
+            // Clear app-related cache keys; avoid blowing everything unless necessary
+            ["authToken", "authType", "rememberMe", "medlink-language"].forEach(
+              (k) => localStorage.removeItem(k)
+            );
+            if (prefsStatus) prefsStatus.textContent = "Cache cleared";
+          });
+
+        // logout
+        const logout = document.getElementById("logout");
+        if (logout)
+          logout.addEventListener("click", (e) => {
+            e.preventDefault();
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("authType");
+            localStorage.removeItem("rememberMe");
+            location.href = "/auth/login";
+          });
+
+        const clearTokenBtn = document.getElementById("clear-token");
+        if (clearTokenBtn)
+          clearTokenBtn.addEventListener("click", () => {
+            localStorage.removeItem("authToken");
+            alert("Token cleared");
+          });
+
+        /*
+         * New: Doctor search + map integration (Leaflet)
+         * - Initializes a map
+         * - Fetches doctors from /doctors (or filters client-side)
+         * - Allows filtering by name, specialty, distance, rating
+         * - Clicking a result pans map and shows popup
+         */
+
+        // Helpers: Haversine distance in km
+        function distanceKm(lat1, lon1, lat2, lon2) {
+          const toRad = (v) => (v * Math.PI) / 180;
+          const R = 6371;
+          const dLat = toRad(lat2 - lat1);
+          const dLon = toRad(lon2 - lon1);
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(lat1)) *
+              Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) *
+              Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          return R * c;
+        }
+
+        // Map state
+        let map;
+        let userLocation = null;
+        let doctorMarkers = [];
+        function initMap() {
+          if (map) return;
+          map = L.map("doctor-map", { zoomControl: true }).setView([0, 0], 2);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "© OpenStreetMap",
+          }).addTo(map);
+
+          // Try geolocation
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                userLocation = { lat, lng };
+                map.setView([lat, lng], 12);
+                L.circle([lat, lng], { radius: 200, color: "#0d9488" }).addTo(
+                  map
+                );
+              },
+              () => {
+                map.setView([20, 0], 2);
+              },
+              { enableHighAccuracy: true, timeout: 5000 }
+            );
+          } else {
+            map.setView([20, 0], 2);
+          }
+        }
+
+        async function fetchDoctorsFromServer(q = "") {
+          try {
+            const t = localStorage.getItem("authToken");
+            const headers = t ? { Authorization: `Bearer ${t}` } : {};
+            // This endpoint is app-specific; adapt as needed. Query param 'q' optional.
+            const res = await fetch(`/doctors?q=${encodeURIComponent(q)}`, {
+              headers,
+            });
+            if (!res.ok) return null;
+            const list = await res.json();
+            return list;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function clearMarkers() {
+          doctorMarkers.forEach((m) => {
+            map.removeLayer(m);
+          });
+          doctorMarkers = [];
+        }
+
+        function addDoctorMarker(doc) {
+          if (!doc.location || !doc.location.lat || !doc.location.lng) return;
+          const m = L.marker([doc.location.lat, doc.location.lng]).addTo(map);
+          const popupHtml = `<strong>${escapeHtml(
+            doc.name || doc.fullName || "Doctor"
+          )}</strong><br/>${escapeHtml(doc.specialty || "")}<br/>${escapeHtml(
+            doc.address || ""
+          )}<br/>Rating: ${doc.rating || "—"}`;
+          m.bindPopup(popupHtml);
+          doctorMarkers.push(m);
+          return m;
+        }
+
+        function escapeHtml(s) {
+          if (!s) return "";
+          return String(s)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;");
+        }
+
+        // Render results list and map markers from array of doctors
+        function renderDoctors(doctors, center) {
+          const container = document.getElementById("doctor-results");
+          container.innerHTML = "";
+          clearMarkers();
+          if (!doctors || doctors.length === 0) {
+            container.innerHTML = `<div class="muted">No doctors found.</div>`;
+            return;
+          }
+          doctors.forEach((doc, idx) => {
+            const div = document.createElement("div");
+            div.className = "doctor-card";
+            const name =
+              doc.name || doc.fullName || doc.displayName || "Doctor";
+            const specialty = doc.specialty || "—";
+            const rating = doc.rating || "—";
+            const address = doc.address || "";
+            let distTxt = "";
+            if (
+              center &&
+              doc.location &&
+              doc.location.lat &&
+              doc.location.lng
+            ) {
+              const d = distanceKm(
+                center.lat,
+                center.lng,
+                doc.location.lat,
+                doc.location.lng
+              );
+              distTxt = ` — ${d.toFixed(1)} km`;
+            }
+            div.innerHTML = `
+              <div style="display:flex; justify-content:space-between; align-items:center">
+                <div>
+                  <strong>${escapeHtml(name)}</strong>
+                  <div class="muted" style="font-size:12px">${escapeHtml(
+                    specialty
+                  )}${distTxt}</div>
+                </div>
+                <div style="text-align:right">
+                  <div class="muted" style="font-size:12px">Rating</div>
+                  <div><strong>${rating}</strong></div>
+                </div>
+              </div>
+              <div style="margin-top:6px" class="muted">${escapeHtml(
+                address
+              )}</div>
+              <div style="margin-top:8px; display:flex; gap:6px; justify-content:flex-end">
+                <button class="btn btn-primary" data-idx="${idx}">Locate</button>
+                <button class="btn" data-idx="${idx}" data-action="details">Details</button>
+              </div>
+            `;
+            container.appendChild(div);
+
+            // Add marker
+            const marker = addDoctorMarker(doc);
+            if (marker && idx === 0 && doctors.length === 1 && center) {
+              map.setView([doc.location.lat, doc.location.lng], 13);
+              marker.openPopup();
+            }
+          });
+
+          // Hook locate buttons
+          container.querySelectorAll("button").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              const idx = Number(btn.getAttribute("data-idx"));
+              const action = btn.getAttribute("data-action") || "locate";
+              const doc = doctors[idx];
+              if (!doc || !doc.location) return;
+              map.setView([doc.location.lat, doc.location.lng], 14);
+              // find corresponding marker and open popup
+              const marker = doctorMarkers[idx];
+              if (marker) marker.openPopup();
+              if (action === "details") {
+                // open details in a new page or modal - fallback to navigating to doctor record if available
+                if (doc.id) {
+                  location.href = `/doctors/${doc.id}`;
+                } else {
+                  alert(
+                    "No details page available for this doctor. Implement server-side route /doctors/:id"
+                  );
+                }
+              }
+            });
+          });
+        }
+
+        // Main search logic: fetch (server) then client filter
+        async function searchDoctors() {
+          const status = document.getElementById("doc-status");
+          status.textContent = "Searching...";
+          const q = (document.getElementById("doc-search").value || "").trim();
+          const specialty = (
+            document.getElementById("doc-specialty").value || ""
+          ).trim();
+          const maxDistance = Number(
+            document.getElementById("doc-distance").value || "10"
+          );
+          const minRating = Number(
+            document.getElementById("doc-rating").value || "0"
+          );
+
+          // Ensure map initialized and center known
+          initMap();
+          const center =
+            userLocation ||
+            (map
+              ? { lat: map.getCenter().lat, lng: map.getCenter().lng }
+              : null);
+
+          // Try server first
+          let list = await fetchDoctorsFromServer(q);
+          if (!list) {
+            // Fallback: try a local demo set (if server missing)
+            list = [
+              {
+                id: "d1",
+                name: "Dr. Alice Smith",
+                specialty: "General Practitioner",
+                rating: 4.6,
+                address: "12 Health St, City",
+                location: {
+                  lat: center?.lat ? center.lat + 0.03 : 51.5,
+                  lng: center?.lng ? center.lng + 0.02 : -0.09,
+                },
+              },
+              {
+                id: "d2",
+                name: "Dr. Bob Jones",
+                specialty: "Cardiology",
+                rating: 4.2,
+                address: "34 Heart Ave, City",
+                location: {
+                  lat: center?.lat ? center.lat - 0.02 : 51.51,
+                  lng: center?.lng ? center.lng - 0.03 : -0.1,
+                },
+              },
+            ];
+          }
+
+          // Client-side filtering
+          let filtered = list.filter((doc) => {
+            if (q) {
+              const s = (
+                doc.name ||
+                doc.fullName ||
+                doc.clinic ||
+                ""
+              ).toLowerCase();
+              const addr = (doc.address || "").toLowerCase();
+              if (
+                !s.includes(q.toLowerCase()) &&
+                !addr.includes(q.toLowerCase())
+              )
+                return false;
+            }
+            if (specialty) {
+              if (!doc.specialty) return false;
+              if (
+                !doc.specialty.toLowerCase().includes(specialty.toLowerCase())
+              )
+                return false;
+            }
+            if (minRating && doc.rating && Number(doc.rating) < minRating) {
+              return false;
+            }
+            if (center && maxDistance && doc.location && doc.location.lat) {
+              const d = distanceKm(
+                center.lat,
+                center.lng,
+                doc.location.lat,
+                doc.location.lng
+              );
+              if (d > maxDistance) return false;
+              doc._distance = d;
+            }
+            return true;
+          });
+
+          // Sort by distance if available
+          if (center) {
+            filtered.sort((a, b) => {
+              const da = a._distance || 99999;
+              const db = b._distance || 99999;
+              return da - db;
+            });
+          }
+
+          renderDoctors(filtered, center);
+          status.textContent = `${filtered.length} result(s)`;
+        }
+
+        // Hook search UI
+        document.addEventListener("DOMContentLoaded", () => {
+          initMap();
+          const searchBtn = document.getElementById("doc-search-btn");
+          const clearBtn = document.getElementById("doc-clear-btn");
+          if (searchBtn)
+            searchBtn.addEventListener("click", (e) => {
+              e.preventDefault();
+              searchDoctors();
+            });
+          if (clearBtn) {
+            clearBtn.addEventListener("click", (e) => {
+              e.preventDefault();
+              document.getElementById("doc-search").value = "";
+              document.getElementById("doc-specialty").value = "";
+              document.getElementById("doc-distance").value = "10";
+              document.getElementById("doc-rating").value = "0";
+              document.getElementById("doc-status").textContent = "";
+              document.getElementById("doctor-results").innerHTML = "";
+              clearMarkers();
+              if (map && userLocation)
+                map.setView([userLocation.lat, userLocation.lng], 12);
+            });
+          }
+
+          // also run search when opening the search tab
+          const searchLink = document.querySelector('a[data-section="search"]');
+          if (searchLink) {
+            searchLink.addEventListener("click", () => {
+              // small delay to ensure map container visible
+              setTimeout(() => {
+                initMap();
+                map.invalidateSize();
+                searchDoctors();
+              }, 200);
+            });
+          }
+
+          // Initialize map size if section is active initially
+          if (document.querySelector('a[data-section="search"].active')) {
+            setTimeout(() => {
+              initMap();
+              map.invalidateSize();
+            }, 200);
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
