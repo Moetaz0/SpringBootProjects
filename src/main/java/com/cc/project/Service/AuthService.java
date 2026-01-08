@@ -173,8 +173,7 @@ public class AuthService {
         if (email == null || email.isBlank())
             throw new RuntimeException("Email required");
         User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("No account for email"));
-        if (user.getRole() != User.Role.CLIENT)
-            throw new RuntimeException("Password reset allowed only for CLIENT accounts");
+
         String code = String.format("%06d", new java.security.SecureRandom().nextInt(1_000_000));
         user.setResetCode(code);
         user.setResetCodeExpiry(java.time.Instant.now().plus(java.time.Duration.ofMinutes(10)));

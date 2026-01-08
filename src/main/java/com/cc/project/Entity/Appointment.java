@@ -32,8 +32,9 @@ public class Appointment {
     @JoinColumn(name = "doctor_id")
     private Doctor doctor;
 
-    @OneToMany(mappedBy = "appointment")
-    private List<MedicalFile> files;
+    @ManyToOne
+    @JoinColumn(name = "medical_history_id")
+    private MedicalHistory medicalHistory;
 
     public enum Status {
         PENDING,
@@ -65,7 +66,7 @@ public class Appointment {
         this.doctor = doctor;
     }
 
-    public void setFiles(List<MedicalFile> files) {
-        this.files = files;
+    public void setMedicalHistory(MedicalHistory medicalHistory) {
+        this.medicalHistory = medicalHistory;
     }
 }

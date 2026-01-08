@@ -1,6 +1,8 @@
 package com.cc.project.Controllers;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import com.cc.project.Entity.*;
@@ -11,7 +13,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/prescriptions")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000")
 public class PrescriptionController {
 
     private final PrescriptionService prescriptionService;
@@ -19,6 +20,7 @@ public class PrescriptionController {
     // --------------------------
     // PATIENT: Get own prescriptions
     // --------------------------
+    @ResponseBody
     @GetMapping("/patient/{patientId}")
     public List<Prescription> getPatientPrescriptions(@PathVariable Long patientId) {
         return prescriptionService.getPatientPrescriptions(patientId);

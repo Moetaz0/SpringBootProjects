@@ -15,7 +15,9 @@ public class LabResult {
     private Long id;
 
     private String testName;
-    private String resultFileUrl;
+    @ManyToOne
+    @JoinColumn(name = "medical_history_id")
+    private MedicalHistory medicalHistory;
     private LocalDate date;
 
     @ManyToOne

@@ -12,13 +12,19 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
     />
-    <!-- Leaflet CSS for map -->
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-sA+e2k6JkYyZg6m1A9Jk0Vgqz7m1bN9G2v1qk2U5rYQ="
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
       crossorigin=""
     />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <style>
       :root {
         --brand: #0d9488; /* teal */
@@ -31,11 +37,57 @@
         --border: rgba(15, 23, 42, 0.08);
         --shadow: 0 10px 30px rgba(13, 110, 253, 0.06);
       }
+      .mh-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+        margin-top: 10px;
+      }
+
+      .mh-card {
+        padding: 16px;
+        border-radius: 12px;
+        background: var(--card-bg, #fff);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        transition: transform 0.2s;
+      }
+
+      body.dark .mh-card {
+        background: #1e1e1e;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4);
+      }
+
+      .mh-card:hover {
+        transform: translateY(-3px);
+      }
+
+      .mh-card h3 {
+        margin: 0 0 6px 0;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .mh-card p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--muted-text, #555);
+      }
+
+      .mh-card.small {
+        padding: 14px;
+      }
+
+      .mh-card.full {
+        grid-column: 1 / -1;
+      }
+
       body.dark {
         --bg: linear-gradient(180deg, #031017 0%, #02121a 100%);
-        --card-bg: rgba(6, 10, 15, 0.7);
+        --card-bg: rgba(37, 39, 41, 0.7);
         --muted: #9fb6bb;
-        --text: #e6f3f2;
+        --text: #cac5c5ff;
         --border: rgba(255, 255, 255, 0.06);
         --shadow: 0 12px 40px rgba(2, 10, 12, 0.6);
       }
@@ -106,10 +158,19 @@
       .brand {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 20px;
+        justify-content: center; /* center horizontally in the aside */
+        gap: 12px;
+        margin: 14px 0 24px 0;
         font-weight: 800;
         color: var(--brand-600);
+        font-size: 1.25rem; /* slightly larger text */
+        width: 100%;
+      }
+
+      /* make icon a bit bigger and keep proper alignment */
+      .brand i {
+        font-size: 1.4rem;
+        line-height: 1;
       }
       .nav {
         list-style: none;
@@ -233,6 +294,126 @@
       .doctor-card button {
         margin-left: 6px;
       }
+      /* Minimal WhatsApp-like style */
+      .chat-container {
+        display: flex;
+        gap: 16px;
+        height: 520px;
+      }
+      .chat-sidebar {
+        width: 300px;
+        border-right: 1px solid rgba(0, 0, 0, 0.06);
+        padding: 12px;
+        box-sizing: border-box;
+      }
+      .chat-header {
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .conversations {
+        overflow-y: auto;
+        height: calc(100% - 40px);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .conv {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 8px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .conv:hover {
+        background: rgba(0, 0, 0, 0.03);
+      }
+      .conv .meta {
+        flex: 1;
+      }
+      .conv .meta .name {
+        font-weight: 600;
+      }
+      .conv .meta .last {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .chat-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .chat-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 8px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      }
+      .chat-window {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        background: linear-gradient(180deg, #f7f7f7, #fff);
+      }
+      .messages-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 960px;
+        margin: 0 auto;
+      }
+
+      .msg {
+        max-width: 70%;
+        padding: 10px 12px;
+        border-radius: 14px;
+        line-height: 1.3;
+      }
+      .msg.me {
+        background: linear-gradient(90deg, var(--brand), var(--accent));
+        color: #fff;
+        margin-left: auto;
+        border-bottom-right-radius: 4px;
+      }
+      .msg.them {
+        background: #fff;
+        color: var(--text);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        margin-right: auto;
+        border-bottom-left-radius: 4px;
+      }
+
+      .msg .meta {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .chat-form {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
+      }
+      #msg-input {
+        flex: 1;
+        padding: 10px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+      .btn {
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: #fff;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: linear-gradient(90deg, var(--brand), var(--accent));
+        color: #fff;
+        border: none;
+      }
 
       @media (max-width: 980px) {
         .app {
@@ -267,9 +448,15 @@
             margin-bottom: 10px;
           "
         >
-          <button id="theme-toggle" class="btn" title="Toggle theme">
-            <i id="theme-icon" class="bi bi-moon-fill"></i>
-          </button>
+          <div
+            style="
+              display: flex;
+              width: 100%;
+              justify-content: space-between;
+              gap: 8px;
+              margin-bottom: 10px;
+            "
+          ></div>
         </div>
         <nav>
           <ul class="nav">
@@ -314,6 +501,50 @@
       <main class="main">
         <div class="topbar">
           <h1 id="dashboard-title" style="margin: 0">Client Dashboard</h1>
+        </div>
+        <div
+          style="
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 9999;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+          "
+        >
+          <button
+            id="notif-btn"
+            class="btn"
+            title="Notifications"
+            style="position: relative; padding: 8px"
+          >
+            <i class="bi bi-bell"></i>
+            <span
+              id="notif-count"
+              style="
+                position: absolute;
+                top: -6px;
+                right: -6px;
+                background: #ef4444;
+                color: #fff;
+                font-size: 11px;
+                padding: 2px 6px;
+                border-radius: 999px;
+                display: none;
+              "
+              >0</span
+            >
+          </button>
+
+          <button
+            id="theme-toggle"
+            class="btn"
+            title="Toggle theme"
+            style="padding: 8px"
+          >
+            <i id="theme-icon" class="bi bi-moon-fill"></i>
+          </button>
         </div>
 
         <section id="section-overview" class="card">
@@ -391,13 +622,56 @@
         </section>
 
         <section id="section-history" class="card" style="display: none">
-          <h2 style="margin: 0 0 8px 0">My medical history</h2>
-          <p class="muted">Visits, conditions and procedures timeline.</p>
+          <h2 style="margin: 0 0 8px 0">My Medical History</h2>
+          <p class="muted">Visits, conditions, medications & test results.</p>
+
+          <!-- Medical Information -->
+          <h3 style="margin-top: 20px">General Information</h3>
+          <div id="mh-info" class="muted">Loading...</div>
+
+          <!-- Appointments -->
+          <h3 style="margin-top: 20px">Past Appointments</h3>
+          <div id="mh-appointments" class="muted">Loading...</div>
+
+          <!-- Lab Results -->
+          <h3 style="margin-top: 20px">Lab Results</h3>
+          <div id="mh-labs" class="muted">Loading...</div>
         </section>
 
+        <!-- Messages section (WhatsApp style) -->
         <section id="section-messages" class="card" style="display: none">
-          <h2 style="margin: 0 0 8px 0">Messages</h2>
-          <p class="muted">Secure messages between you and your caregivers.</p>
+          <div class="chat-container">
+            <div class="chat-sidebar">
+              <div class="chat-header">
+                <strong>Messages</strong>
+              </div>
+              <div id="conversations" class="conversations"></div>
+            </div>
+
+            <div class="chat-main">
+              <div class="chat-topbar">
+                <div id="chat-with" class="chat-with">
+                  Select a conversation
+                </div>
+                <div class="chat-actions">
+                  <button id="start-new" class="btn">New</button>
+                </div>
+              </div>
+
+              <div id="chat-window" class="chat-window">
+                <div id="messages-list" class="messages-list"></div>
+              </div>
+
+              <form id="chat-form" class="chat-form" onsubmit="return false;">
+                <input
+                  id="msg-input"
+                  autocomplete="off"
+                  placeholder="Type a message"
+                />
+                <button id="send-btn" class="btn btn-primary">Send</button>
+              </form>
+            </div>
+          </div>
         </section>
 
         <!-- New Search doctors section -->
@@ -442,15 +716,6 @@
                       <option value="50">50</option>
                     </select>
                   </div>
-                  <div style="flex: 1">
-                    <label class="muted">Min rating</label>
-                    <select id="doc-rating" class="btn" style="width: 100%">
-                      <option value="0">Any</option>
-                      <option value="3">3+</option>
-                      <option value="4">4+</option>
-                      <option value="4.5">4.5+</option>
-                    </select>
-                  </div>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center">
                   <button id="doc-search-btn" class="btn btn-primary">
@@ -478,7 +743,7 @@
             </div>
 
             <div class="col-8">
-              <div id="doctor-map" class="doctor-map"></div>
+              <div id="doctor-map" style="width: 100%; height: 500px"></div>
             </div>
           </div>
         </section>
@@ -612,62 +877,65 @@
     <!-- Leaflet JS -->
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-o9N1j8gkT2cGz7gqed0zqj0vO1yYJY5xR3m6tzh3kz0="
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
       crossorigin=""
     ></script>
-
     <script>
-      // Theme toggle (same behavior as login)
-      (function () {
-        const storageKey = "medlink-theme";
-        const body = document.body;
-        const toggle = document.getElementById("theme-toggle");
-        const icon = document.getElementById("theme-icon");
-        const prefersDarkMQ =
-          window.matchMedia &&
-          window.matchMedia("(prefers-color-scheme: dark)");
-        function setIcon(isDark) {
-          if (!icon) return;
-          icon.className = isDark ? "bi bi-sun-fill" : "bi bi-moon-fill";
-        }
-        function applyTheme(isDark) {
-          if (isDark) body.classList.add("dark");
-          else body.classList.remove("dark");
-          setIcon(isDark);
-        }
-        document.addEventListener("DOMContentLoaded", function () {
-          const stored = localStorage.getItem(storageKey);
-          const prefersDark = prefersDarkMQ && prefersDarkMQ.matches;
-          const isDark = stored ? stored === "dark" : prefersDark;
-          applyTheme(isDark);
-          if (!stored && prefersDarkMQ) {
-            prefersDarkMQ.addEventListener("change", (e) =>
-              applyTheme(e.matches)
-            );
-          }
-        });
-        if (toggle) {
-          toggle.addEventListener("click", function () {
-            const isDark = body.classList.toggle("dark");
-            localStorage.setItem(storageKey, isDark ? "dark" : "light");
-            setIcon(isDark);
-          });
-        }
-      })();
-
-      // Basic SPA-like section switching and auth token usage
-      (function () {
+      (() => {
+        // ---------------------------
+        // AUTHENTICATION
+        // ---------------------------
         const token = localStorage.getItem("authToken");
-        const userEmailEl = document.getElementById("user-email");
-        if (!token) {
-          // If no token, send to login (can relax during UI dev)
-          // location.href = '/auth/login';
-        }
-        if (userEmailEl) {
-          userEmailEl.textContent = "Signed in";
+        if (!token) return (location.href = "/auth/login");
+
+        function parseToken(t) {
+          try {
+            return JSON.parse(
+              atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
+            );
+          } catch {
+            return null;
+          }
         }
 
-        const links = document.querySelectorAll(".nav a[data-section]");
+        const payload = parseToken(token);
+        const myId = payload?.userId;
+        if (!myId) return (location.href = "/auth/login");
+
+        // ---------------------------
+        // HELPERS
+        // ---------------------------
+        function escapeHtml(s) {
+          return (s || "")
+            .toString()
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;");
+        }
+
+        function scrollToBottom() {
+          setTimeout(() => {
+            const chatWindow = document.getElementById("chat-window");
+            if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
+          }, 50);
+        }
+
+        async function fetchJson(url) {
+          try {
+            const res = await fetch(url, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            return res.ok ? await res.json() : null;
+          } catch (e) {
+            console.error(e);
+            return null;
+          }
+        }
+
+        // ---------------------------
+        // SPA SECTION SWITCHING
+        // ---------------------------
         const sections = {
           overview: document.getElementById("section-overview"),
           prescriptions: document.getElementById("section-prescriptions"),
@@ -676,74 +944,316 @@
           search: document.getElementById("section-search"),
           settings: document.getElementById("section-settings"),
         };
-        function show(section) {
-          Object.entries(sections).forEach(([k, el]) => {
-            if (!el) return;
-            el.style.display = k === section ? "" : "none";
-          });
-          links.forEach((a) =>
-            a.classList.toggle(
-              "active",
-              a.getAttribute("data-section") === section
-            )
+        const links = document.querySelectorAll(".nav a[data-section]");
+
+        function showSection(sec) {
+          Object.entries(sections).forEach(
+            ([k, el]) => el && (el.style.display = k === sec ? "" : "none")
           );
+          links.forEach((a) =>
+            a.classList.toggle("active", a.getAttribute("data-section") === sec)
+          );
+          history.replaceState
+            ? history.replaceState(null, null, `#${sec}`)
+            : (location.hash = sec);
+          localStorage.setItem("medlink-active-section", sec);
         }
-        links.forEach((a) =>
+
+        links.forEach((a) => {
           a.addEventListener("click", (e) => {
             e.preventDefault();
-            show(a.getAttribute("data-section"));
-          })
-        );
-        show("overview");
+            showSection(a.getAttribute("data-section"));
+          });
+        });
 
-        // Load user details into Settings by decoding JWT uid and calling /users/{id}
+        window.addEventListener("hashchange", () => {
+          const hashSec = location.hash.replace("#", "");
+          if (hashSec && sections[hashSec]) showSection(hashSec);
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+          const lastSec =
+            localStorage.getItem("medlink-active-section") || "overview";
+          showSection(lastSec);
+        });
+
+        // ---------------------------
+        // USER DETAILS
+        // ---------------------------
         async function loadUserDetails() {
-          try {
-            const t = localStorage.getItem("authToken");
-            console.log(t);
-            if (!t) return;
-            const parts = t.split(".");
-            if (parts.length !== 3) return;
-            const payload = JSON.parse(
-              atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
-            );
-            console.log(payload);
-            const uid = payload.userId;
-            console.log(uid);
-            const role = payload.role;
-            if (!uid) return;
-            const res = await fetch(`/users/${uid}`, {
-              headers: { Authorization: `Bearer ${t}` },
-            });
-            if (!res.ok) return;
-            const user = await res.json();
-            const name = user.username;
-            const email = user.email || user.username || "";
-            const phone = user.phone || user.phoneNumber || "";
-            // populate inputs
-            const nameInp = document.getElementById("inp-name");
-            const emailInp = document.getElementById("inp-email");
-            const phoneInp = document.getElementById("inp-phone");
-            if (nameInp) nameInp.value = name;
-            if (emailInp) emailInp.value = email;
-            if (phoneInp) phoneInp.value = phone;
-            // role display in sidebar info
-
-            const roleEl = document.getElementById("profile-role");
-            if (roleEl) roleEl.textContent = user.role || role || "—";
-            if (userEmailEl2) userEmailEl2.textContent = email;
-            document.getElementById("dashboard-title").textContent =
-              name + " , Dashboard";
-            // cache user id for later updates
-            sessionStorage.setItem("uid", String(uid));
-          } catch (e) {
-            // ignore for now
-          }
+          const user = await fetchJson(`/users/${myId}`);
+          if (!user) return;
+          document.getElementById("inp-name").value = user.username || "";
+          document.getElementById("inp-email").value = user.email || "";
+          document.getElementById("inp-phone").value = user.phoneNumber || "";
+          document.getElementById(
+            "dashboard-title"
+          ).textContent = `${user.username}, Dashboard`;
+          sessionStorage.setItem("uid", myId);
         }
         loadUserDetails();
 
-        // Prescriptions: fetch and filter
+        // ---------------------------
+        // THEME TOGGLE
+        // ---------------------------
+        const storageKey = "medlink-theme";
+        const body = document.body;
+        const toggle = document.getElementById("theme-toggle");
+        const icon = document.getElementById("theme-icon");
+
+        function setIcon(isDark) {
+          if (icon)
+            icon.className = isDark ? "bi bi-sun-fill" : "bi bi-moon-fill";
+        }
+        function applyTheme(isDark) {
+          isDark ? body.classList.add("dark") : body.classList.remove("dark");
+          setIcon(isDark);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+          const stored = localStorage.getItem(storageKey);
+          const prefersDark = window.matchMedia?.(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          const isDark = stored ? stored === "dark" : prefersDark;
+          applyTheme(isDark);
+          if (!stored && window.matchMedia) {
+            window
+              .matchMedia("(prefers-color-scheme: dark)")
+              .addEventListener("change", (e) => applyTheme(e.matches));
+          }
+        });
+
+        toggle?.addEventListener("click", () => {
+          const isDark = body.classList.toggle("dark");
+          localStorage.setItem(storageKey, isDark ? "dark" : "light");
+          setIcon(isDark);
+        });
+
+        // ---------------------------
+        // LOGOUT
+        // ---------------------------
+        document.getElementById("logout")?.addEventListener("click", (e) => {
+          e.preventDefault();
+          localStorage.removeItem("authToken");
+          location.href = "/auth/login";
+        });
+
+        // ---------------------------
+        // MESSAGES
+        // ---------------------------
+        const sectionMessages = document.getElementById("section-messages");
+        const convContainer = document.getElementById("conversations");
+        const chatWithEl = document.getElementById("chat-with");
+        const messagesList = document.getElementById("messages-list");
+        const msgInput = document.getElementById("msg-input");
+        const sendBtn = document.getElementById("send-btn");
+
+        let conversations = [];
+        let activeConversation = null;
+        let stompClient = null;
+
+        async function loadConversations() {
+          const data = await fetchJson(`/api/chats/${myId}/conversations`);
+          if (data) {
+            conversations = data;
+            renderConversations();
+          }
+        }
+
+        function renderConversations() {
+          convContainer.innerHTML = "";
+          conversations.forEach((c) => {
+            const el = document.createElement("div");
+            el.className = "conv";
+            el.dataset.other = c.otherId;
+            el.innerHTML = `<div class="meta">
+          <div class="name">${escapeHtml(c.name || "User " + c.otherId)}</div>
+          <div class="last">${escapeHtml(c.lastMessage || "")}</div>
+        </div>`;
+            el.addEventListener("click", () =>
+              openConversation(c.otherId, c.name)
+            );
+            convContainer.appendChild(el);
+          });
+        }
+
+        async function openConversation(otherId, otherName) {
+          activeConversation = otherId;
+          chatWithEl.textContent = otherName || "User " + otherId;
+          messagesList.innerHTML = '<div class="muted">Loading...</div>';
+          const data = await fetchJson(`/api/chats/${myId}/with/${otherId}`);
+          renderMessages(data || []);
+        }
+
+        function renderMessages(msgs) {
+          messagesList.innerHTML = "";
+          msgs.forEach(appendMessageToList);
+          scrollToBottom();
+        }
+
+        function appendMessageToList(m) {
+          const div = document.createElement("div");
+          div.className = "msg " + (m.senderId === myId ? "me" : "them");
+          div.innerHTML = `<div class="body">${escapeHtml(m.content)}</div>
+                     <div class="meta">${new Date(
+                       m.timestamp
+                     ).toLocaleString()}</div>`;
+          messagesList.appendChild(div);
+        }
+
+        function handleIncomingMessage(m) {
+          if (
+            m.senderId === activeConversation ||
+            m.receiverId === activeConversation
+          ) {
+            appendMessageToList(m);
+            scrollToBottom();
+          } else {
+            const otherId = m.senderId === myId ? m.receiverId : m.senderId;
+            const idx = conversations.findIndex((c) => +c.otherId === +otherId);
+            if (idx === -1)
+              conversations.unshift({
+                otherId,
+                name: "User " + otherId,
+                lastMessage: m.content,
+              });
+            else {
+              conversations[idx].lastMessage = m.content;
+              conversations.unshift(conversations.splice(idx, 1)[0]);
+            }
+            renderConversations();
+          }
+        }
+
+        function connectWs() {
+          const socket = new SockJS("/chat");
+          stompClient = Stomp.over(socket);
+          stompClient.connect(
+            { Authorization: `Bearer ${token}` },
+            () => {
+              stompClient.subscribe("/user/queue/messages", (frame) =>
+                handleIncomingMessage(JSON.parse(frame.body))
+              );
+            },
+            (err) => console.error("WS connect error", err)
+          );
+        }
+
+        function sendMessage() {
+          if (!stompClient || !activeConversation) return;
+          const content = msgInput.value.trim();
+          if (!content) return;
+          const payload = {
+            senderId: myId,
+            receiverId: activeConversation,
+            content,
+          };
+          stompClient.send("/app/chat.send", {}, JSON.stringify(payload));
+          payload.timestamp = new Date().toISOString();
+          appendMessageToList(payload);
+          scrollToBottom();
+          msgInput.value = "";
+        }
+
+        sendBtn?.addEventListener("click", sendMessage);
+        msgInput?.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") sendMessage();
+        });
+
+        sectionMessages &&
+          sectionMessages.addEventListener("click", loadConversations);
+        connectWs();
+
+        // ---------------------------
+        // MEDICAL HISTORY
+        // ---------------------------
+        async function fetchMedicalHistory() {
+          const mh = await fetchJson(`/api/history/user/${myId}`);
+          if (!mh) {
+            document.getElementById("mh-info").textContent =
+              "No medical history available.";
+            return;
+          }
+
+          document.getElementById("mh-info").innerHTML = `
+      <div class="mh-grid">
+        <div class="mh-card"><h3><i class="bi bi-heart-pulse"></i> Conditions</h3><p>${
+          mh.conditions || "None reported"
+        }</p></div>
+        <div class="mh-card"><h3><i class="bi bi-exclamation-triangle"></i> Allergies</h3><p>${
+          mh.allergies || "None reported"
+        }</p></div>
+        <div class="mh-card"><h3><i class="bi bi-capsule"></i> Medications</h3><p>${
+          mh.medications || "None reported"
+        }</p></div>
+        <div class="mh-card small"><h3><i class="bi bi-wind"></i> Smoking</h3><p>${
+          mh.smokingStatus || "-"
+        }</p></div>
+        <div class="mh-card small"><h3><i class="bi bi-cup-straw"></i> Alcohol</h3><p>${
+          mh.alcoholConsumption || "-"
+        }</p></div>
+        <div class="mh-card small"><h3><i class="bi bi-rulers"></i> Height</h3><p>${
+          mh.heightCm ? mh.heightCm + " cm" : "-"
+        }</p></div>
+        <div class="mh-card small"><h3><i class="bi bi-weight"></i> Weight</h3><p>${
+          mh.weightKg ? mh.weightKg + " kg" : "-"
+        }</p></div>
+        <div class="mh-card small"><h3><i class="bi bi-droplet-half"></i> Blood Type</h3><p>${
+          mh.bloodType || "-"
+        }</p></div>
+        <div class="mh-card full"><h3><i class="bi bi-journal-text"></i> Notes</h3><p>${
+          mh.notes || "No additional notes."
+        }</p></div>
+      </div>
+    `;
+
+          const apptDiv = document.getElementById("mh-appointments");
+          apptDiv.innerHTML =
+            mh.appointments && mh.appointments.length > 0
+              ? mh.appointments
+                  .map(
+                    (a) =>
+                      `<div class="card" style="margin-bottom:10px;"><strong>${
+                        a.doctor?.user?.username || "Doctor"
+                      }</strong><br/>${new Date(
+                        a.date
+                      ).toLocaleString()}<br/><span class="muted">${
+                        a.reason || ""
+                      }</span></div>`
+                  )
+                  .join("")
+              : "No past appointments.";
+
+          const labDiv = document.getElementById("mh-labs");
+          labDiv.innerHTML =
+            mh.labResults && mh.labResults.length > 0
+              ? mh.labResults
+                  .map(
+                    (l) =>
+                      `<div class="card" style="margin-bottom:10px;"><strong>${
+                        l.testName
+                      }</strong><br/>Result: ${l.result}<br/>Date: ${new Date(
+                        l.date
+                      ).toLocaleDateString()}</div>`
+                  )
+                  .join("")
+              : "No lab results.";
+        }
+        document
+          .querySelector('a[data-section="history"]')
+          ?.addEventListener("click", fetchMedicalHistory);
+
+        // ---------------------------
+        // PRESCRIPTIONS
+        // ---------------------------
         let rxAll = [];
+        async function fetchRx() {
+          const data = await fetchJson(`/prescriptions/patient/${myId}`);
+          rxAll = data || [];
+          renderRx(rxAll);
+        }
+
         function renderRx(items) {
           const container = document.getElementById("rx-list");
           const empty = document.getElementById("rx-empty");
@@ -757,614 +1267,181 @@
           items.forEach((rx) => {
             const card = document.createElement("div");
             card.className = "card col-4";
-            const name =
-              rx.medicationName || rx.drug || rx.name || "Prescription";
-            const doctor =
-              (rx.doctor && (rx.doctor.name || rx.doctor.fullName)) ||
-              rx.doctorName ||
-              "-";
-            const status =
-              rx.status || (rx.prescriptionStatus || {}).name || "-";
+            const name = rx.medicationName || "-";
+            const doctor = rx.doctor?.username || "-";
+            const status = rx.status || rx.prescriptionStatus?.name || "-";
             const date = rx.date || rx.createdAt || rx.issueDate || null;
+            const canRequestRefill = status !== "PENDING";
             card.innerHTML = `
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong>${name}</strong>
-                <span class="muted" style="font-size:12px;">${status}</span>
-              </div>
-              <div class="muted" style="margin-top:6px;">Doctor: ${doctor}</div>
-              ${
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong>${name}</strong>
+          <span class="muted" style="font-size:12px;">${status}</span>
+        </div>
+        <div class="muted" style="margin-top:6px;">Doctor: ${doctor}</div>
+        ${
+          date
+            ? `<div class="muted" style="margin-top:4px;">Date: ${new Date(
                 date
-                  ? `<div class="muted" style="margin-top:4px;">Date: ${new Date(
-                      date
-                    ).toLocaleDateString()}</div>`
-                  : ""
-              }
-              <div style="margin-top:8px;" class="actions-row">
-                <button class="btn">View</button>
-                ${
-                  rx.canRequestRefill
-                    ? '<button class="btn">Request refill</button>'
-                    : ""
-                }
-              </div>
-            `;
+              ).toLocaleDateString()}</div>`
+            : ""
+        }
+        <div style="margin-top:8px;" class="actions-row">
+          ${
+            canRequestRefill
+              ? '<button class="btn request-refill">Request refill</button>'
+              : ""
+          }
+        </div>
+      `;
             container.appendChild(card);
           });
         }
-        function applyRxFilters() {
-          const q = (
-            document.getElementById("rx-search")?.value || ""
-          ).toLowerCase();
-          const st = document.getElementById("rx-status")?.value || "";
-          const from = document.getElementById("rx-from")?.value || "";
-          const to = document.getElementById("rx-to")?.value || "";
-          const fromTs = from ? Date.parse(from) : null;
-          const toTs = to ? Date.parse(to) : null;
-          const filtered = rxAll.filter((rx) => {
-            const name = (
-              rx.medicationName ||
-              rx.drug ||
-              rx.name ||
-              ""
-            ).toLowerCase();
-            const doctor = (
-              (rx.doctor && (rx.doctor.name || rx.doctor.fullName)) ||
-              rx.doctorName ||
-              ""
-            ).toLowerCase();
-            const status = (
-              rx.status ||
-              (rx.prescriptionStatus || {}).name ||
-              ""
-            ).toUpperCase();
-            const dateRaw = rx.date || rx.createdAt || rx.issueDate || null;
-            const dateTs = dateRaw ? Date.parse(dateRaw) : null;
-            const matchesQuery = !q || name.includes(q) || doctor.includes(q);
-            const matchesStatus = !st || status === st.toUpperCase();
-            const matchesFrom = !fromTs || (dateTs && dateTs >= fromTs);
-            const matchesTo = !toTs || (dateTs && dateTs <= toTs);
-            return matchesQuery && matchesStatus && matchesFrom && matchesTo;
-          });
-          renderRx(filtered);
-        }
-        async function fetchRx() {
-          try {
-            const t = localStorage.getItem("authToken");
-            if (!t) return;
-            const uid = sessionStorage.getItem("uid");
-            // Try user-scoped endpoint first, fallback to generic
-            let res = await fetch(`/users/${uid}/prescriptions`, {
-              headers: { Authorization: `Bearer ${t}` },
-            });
-            if (!res.ok) {
-              res = await fetch(
-                `/prescriptions?userId=${encodeURIComponent(uid || "")}`,
-                { headers: { Authorization: `Bearer ${t}` } }
-              );
-            }
-            if (!res.ok) return;
-            rxAll = await res.json();
-            applyRxFilters();
-          } catch (e) {
-            /* ignore */
-          }
-        }
-        // Hook filters
-        ["rx-search", "rx-status", "rx-from", "rx-to"].forEach((id) => {
-          const el = document.getElementById(id);
-          if (el) el.addEventListener("input", applyRxFilters);
-        });
-        const clearBtn = document.getElementById("rx-clear");
-        if (clearBtn)
-          clearBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            ["rx-search", "rx-status", "rx-from", "rx-to"].forEach((id) => {
-              const el = document.getElementById(id);
-              if (el) el.value = id === "rx-status" ? "" : "";
-            });
-            applyRxFilters();
-          });
-        // Load prescriptions when opening the tab and after user details loaded
         document
           .querySelector('a[data-section="prescriptions"]')
-          .addEventListener("click", fetchRx);
-        // Also fetch once after details are loaded
+          ?.addEventListener("click", fetchRx);
         setTimeout(fetchRx, 500);
 
-        // Save profile changes
-        const profileForm = document.getElementById("profile-form");
-        if (profileForm)
-          profileForm.addEventListener("submit", async (e) => {
+        // ---------------------------
+        // PROFILE UPDATE
+        // ---------------------------
+        document
+          .getElementById("profile-form")
+          ?.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const t = localStorage.getItem("authToken");
-            const uid = sessionStorage.getItem("uid");
-            const status = document.getElementById("profile-status");
-            if (!t || !uid) {
-              if (status) status.textContent = "Not authenticated";
-              return;
-            }
             const body = {
-              name: (document.getElementById("inp-name").value || "").trim(),
-              email: (document.getElementById("inp-email").value || "").trim(),
-              phone: (document.getElementById("inp-phone").value || "").trim(),
+              username: document.getElementById("inp-name").value.trim(),
+              email: document.getElementById("inp-email").value.trim(),
+              phoneNumber: document.getElementById("inp-phone").value.trim(),
+              role: payload.role,
             };
             try {
-              const res = await fetch(`/users/${uid}`, {
+              const res = await fetch(`/users/${myId}`, {
                 method: "PUT",
                 headers: {
                   "Content-Type": "application/json",
-                  Authorization: `Bearer ${t}`,
+                  Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify(body),
               });
-              if (res.ok) {
-                if (status) status.textContent = "Saved";
-                loadUserDetails();
-              } else {
-                const text = await res.text();
-                if (status) status.textContent = `Error: ${text || res.status}`;
-              }
-            } catch (err) {
-              if (status) status.textContent = "Network error";
+              const statusEl = document.getElementById("profile-status");
+              statusEl.textContent = res.ok
+                ? "Saved"
+                : `Error: ${(await res.text()) || res.status}`;
+              loadUserDetails();
+            } catch {
+              document.getElementById("profile-status").textContent =
+                "Network error";
             }
           });
 
-        // Change password
-        const pwdForm = document.getElementById("password-form");
-        if (pwdForm)
-          pwdForm.addEventListener("submit", async (e) => {
+        document
+          .getElementById("password-form")
+          ?.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const t = localStorage.getItem("authToken");
-            const status = document.getElementById("password-status");
             const current = document.getElementById("pwd-current").value;
             const next = document.getElementById("pwd-new").value;
-            if (!t) {
-              if (status) status.textContent = "Not authenticated";
-              return;
-            }
-            if (!current || !next) {
-              if (status) status.textContent = "Enter both passwords";
-              return;
-            }
+            if (!current || !next)
+              return (document.getElementById("password-status").textContent =
+                "Enter both passwords");
             try {
               const res = await fetch("/auth/change-password", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  Authorization: `Bearer ${t}`,
+                  Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
                   currentPassword: current,
                   newPassword: next,
                 }),
               });
-              if (res.ok) {
-                if (status) status.textContent = "Password updated";
-              } else {
-                const text = await res.text();
-                if (status) status.textContent = `Error: ${text || res.status}`;
-              }
-            } catch (err) {
-              if (status) status.textContent = "Network error";
+              document.getElementById("password-status").textContent = res.ok
+                ? "Password updated"
+                : `Error: ${(await res.text()) || res.status}`;
+            } catch {
+              document.getElementById("password-status").textContent =
+                "Network error";
             }
           });
 
-        // Preferences
-        const languageSel = document.getElementById("pref-language");
-        const themeSel = document.getElementById("pref-theme");
-        const savePrefsBtn = document.getElementById("save-prefs");
-        const prefsStatus = document.getElementById("prefs-status");
-        const cacheBtn = document.getElementById("clear-cache");
-        // init from storage
-        const storedLang = localStorage.getItem("medlink-language");
-        if (languageSel && storedLang) languageSel.value = storedLang;
-        const storedTheme = localStorage.getItem("medlink-theme");
-        if (themeSel && storedTheme)
-          themeSel.value =
-            storedTheme === "dark"
-              ? "dark"
-              : storedTheme === "light"
-              ? "light"
-              : "system";
-        function applyThemePref(val) {
-          if (val === "dark") {
-            document.body.classList.add("dark");
-          } else if (val === "light") {
-            document.body.classList.remove("dark");
-          } else {
-            const prefersDarkMQ =
-              window.matchMedia &&
-              window.matchMedia("(prefers-color-scheme: dark)");
-            const prefersDark = prefersDarkMQ && prefersDarkMQ.matches;
-            if (prefersDark) document.body.classList.add("dark");
-            else document.body.classList.remove("dark");
-          }
-        }
-        if (savePrefsBtn)
-          savePrefsBtn.addEventListener("click", () => {
-            const lang = languageSel ? languageSel.value : "en";
-            const theme = themeSel ? themeSel.value : "system";
-            localStorage.setItem("medlink-language", lang);
-            localStorage.setItem(
-              "medlink-theme",
-              theme === "system"
-                ? document.body.classList.contains("dark")
-                  ? "dark"
-                  : "light"
-                : theme
-            );
-            applyThemePref(theme);
-            if (prefsStatus) prefsStatus.textContent = "Preferences saved";
-          });
-        if (cacheBtn)
-          cacheBtn.addEventListener("click", () => {
-            // Clear app-related cache keys; avoid blowing everything unless necessary
-            ["authToken", "authType", "rememberMe", "medlink-language"].forEach(
-              (k) => localStorage.removeItem(k)
-            );
-            if (prefsStatus) prefsStatus.textContent = "Cache cleared";
-          });
-
-        // logout
-        const logout = document.getElementById("logout");
-        if (logout)
-          logout.addEventListener("click", (e) => {
-            e.preventDefault();
-            localStorage.removeItem("authToken");
-            localStorage.removeItem("authType");
-            localStorage.removeItem("rememberMe");
-            location.href = "/auth/login";
-          });
-
-        const clearTokenBtn = document.getElementById("clear-token");
-        if (clearTokenBtn)
-          clearTokenBtn.addEventListener("click", () => {
-            localStorage.removeItem("authToken");
-            alert("Token cleared");
-          });
-
-        /*
-         * New: Doctor search + map integration (Leaflet)
-         * - Initializes a map
-         * - Fetches doctors from /doctors (or filters client-side)
-         * - Allows filtering by name, specialty, distance, rating
-         * - Clicking a result pans map and shows popup
-         */
-
-        // Helpers: Haversine distance in km
-        function distanceKm(lat1, lon1, lat2, lon2) {
-          const toRad = (v) => (v * Math.PI) / 180;
-          const R = 6371;
-          const dLat = toRad(lat2 - lat1);
-          const dLon = toRad(lon2 - lon1);
-          const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(toRad(lat1)) *
-              Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) *
-              Math.sin(dLon / 2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          return R * c;
-        }
-
-        // Map state
-        let map;
-        let userLocation = null;
-        let doctorMarkers = [];
-        function initMap() {
-          if (map) return;
-          map = L.map("doctor-map", { zoomControl: true }).setView([0, 0], 2);
-          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            maxZoom: 19,
-            attribution: "© OpenStreetMap",
-          }).addTo(map);
-
-          // Try geolocation
-          if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-              (pos) => {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                userLocation = { lat, lng };
-                map.setView([lat, lng], 12);
-                L.circle([lat, lng], { radius: 200, color: "#0d9488" }).addTo(
-                  map
-                );
-              },
-              () => {
-                map.setView([20, 0], 2);
-              },
-              { enableHighAccuracy: true, timeout: 5000 }
-            );
-          } else {
-            map.setView([20, 0], 2);
-          }
-        }
-
-        async function fetchDoctorsFromServer(q = "") {
-          try {
-            const t = localStorage.getItem("authToken");
-            const headers = t ? { Authorization: `Bearer ${t}` } : {};
-            // This endpoint is app-specific; adapt as needed. Query param 'q' optional.
-            const res = await fetch(`/doctors?q=${encodeURIComponent(q)}`, {
-              headers,
-            });
-            if (!res.ok) return null;
-            const list = await res.json();
-            return list;
-          } catch (e) {
-            return null;
-          }
-        }
+        // ---------------------------
+        // MAP & DOCTORS
+        // ---------------------------
+        let map,
+          doctorMarkers = [],
+          allDoctors = [],
+          userLocation = null;
 
         function clearMarkers() {
-          doctorMarkers.forEach((m) => {
-            map.removeLayer(m);
-          });
+          doctorMarkers.forEach((m) => map.removeLayer(m));
           doctorMarkers = [];
         }
 
-        function addDoctorMarker(doc) {
-          if (!doc.location || !doc.location.lat || !doc.location.lng) return;
-          const m = L.marker([doc.location.lat, doc.location.lng]).addTo(map);
-          const popupHtml = `<strong>${escapeHtml(
-            doc.name || doc.fullName || "Doctor"
-          )}</strong><br/>${escapeHtml(doc.specialty || "")}<br/>${escapeHtml(
-            doc.address || ""
-          )}<br/>Rating: ${doc.rating || "—"}`;
-          m.bindPopup(popupHtml);
-          doctorMarkers.push(m);
-          return m;
-        }
-
-        function escapeHtml(s) {
-          if (!s) return "";
-          return String(s)
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")
-            .replaceAll('"', "&quot;");
-        }
-
-        // Render results list and map markers from array of doctors
-        function renderDoctors(doctors, center) {
-          const container = document.getElementById("doctor-results");
-          container.innerHTML = "";
-          clearMarkers();
-          if (!doctors || doctors.length === 0) {
-            container.innerHTML = `<div class="muted">No doctors found.</div>`;
-            return;
-          }
-          doctors.forEach((doc, idx) => {
-            const div = document.createElement("div");
-            div.className = "doctor-card";
-            const name =
-              doc.name || doc.fullName || doc.displayName || "Doctor";
-            const specialty = doc.specialty || "—";
-            const rating = doc.rating || "—";
-            const address = doc.address || "";
-            let distTxt = "";
-            if (
-              center &&
-              doc.location &&
-              doc.location.lat &&
-              doc.location.lng
-            ) {
-              const d = distanceKm(
-                center.lat,
-                center.lng,
-                doc.location.lat,
-                doc.location.lng
-              );
-              distTxt = ` — ${d.toFixed(1)} km`;
-            }
-            div.innerHTML = `
-              <div style="display:flex; justify-content:space-between; align-items:center">
-                <div>
-                  <strong>${escapeHtml(name)}</strong>
-                  <div class="muted" style="font-size:12px">${escapeHtml(
-                    specialty
-                  )}${distTxt}</div>
-                </div>
-                <div style="text-align:right">
-                  <div class="muted" style="font-size:12px">Rating</div>
-                  <div><strong>${rating}</strong></div>
-                </div>
-              </div>
-              <div style="margin-top:6px" class="muted">${escapeHtml(
+        async function geocodeAddress(address) {
+          const defaultLocation = { lat: 34.0, lng: 9.0 };
+          if (!address) return defaultLocation;
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
                 address
-              )}</div>
-              <div style="margin-top:8px; display:flex; gap:6px; justify-content:flex-end">
-                <button class="btn btn-primary" data-idx="${idx}">Locate</button>
-                <button class="btn" data-idx="${idx}" data-action="details">Details</button>
-              </div>
-            `;
-            container.appendChild(div);
-
-            // Add marker
-            const marker = addDoctorMarker(doc);
-            if (marker && idx === 0 && doctors.length === 1 && center) {
-              map.setView([doc.location.lat, doc.location.lng], 13);
-              marker.openPopup();
-            }
-          });
-
-          // Hook locate buttons
-          container.querySelectorAll("button").forEach((btn) => {
-            btn.addEventListener("click", (e) => {
-              const idx = Number(btn.getAttribute("data-idx"));
-              const action = btn.getAttribute("data-action") || "locate";
-              const doc = doctors[idx];
-              if (!doc || !doc.location) return;
-              map.setView([doc.location.lat, doc.location.lng], 14);
-              // find corresponding marker and open popup
-              const marker = doctorMarkers[idx];
-              if (marker) marker.openPopup();
-              if (action === "details") {
-                // open details in a new page or modal - fallback to navigating to doctor record if available
-                if (doc.id) {
-                  location.href = `/doctors/${doc.id}`;
-                } else {
-                  alert(
-                    "No details page available for this doctor. Implement server-side route /doctors/:id"
-                  );
-                }
-              }
-            });
-          });
+              )}`,
+              { headers: { "User-Agent": "MyApp/1.0 (myemail@example.com)" } }
+            );
+            const data = await res.json();
+            return data.length > 0
+              ? { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+              : defaultLocation;
+          } catch {
+            return defaultLocation;
+          }
         }
 
-        // Main search logic: fetch (server) then client filter
-        async function searchDoctors() {
-          const status = document.getElementById("doc-status");
-          status.textContent = "Searching...";
-          const q = (document.getElementById("doc-search").value || "").trim();
-          const specialty = (
-            document.getElementById("doc-specialty").value || ""
-          ).trim();
-          const maxDistance = Number(
-            document.getElementById("doc-distance").value || "10"
-          );
-          const minRating = Number(
-            document.getElementById("doc-rating").value || "0"
-          );
-
-          // Ensure map initialized and center known
-          initMap();
-          const center =
-            userLocation ||
-            (map
-              ? { lat: map.getCenter().lat, lng: map.getCenter().lng }
-              : null);
-
-          // Try server first
-          let list = await fetchDoctorsFromServer(q);
-          if (!list) {
-            // Fallback: try a local demo set (if server missing)
-            list = [
-              {
-                id: "d1",
-                name: "Dr. Alice Smith",
-                specialty: "General Practitioner",
-                rating: 4.6,
-                address: "12 Health St, City",
-                location: {
-                  lat: center?.lat ? center.lat + 0.03 : 51.5,
-                  lng: center?.lng ? center.lng + 0.02 : -0.09,
-                },
-              },
-              {
-                id: "d2",
-                name: "Dr. Bob Jones",
-                specialty: "Cardiology",
-                rating: 4.2,
-                address: "34 Heart Ave, City",
-                location: {
-                  lat: center?.lat ? center.lat - 0.02 : 51.51,
-                  lng: center?.lng ? center.lng - 0.03 : -0.1,
-                },
-              },
-            ];
-          }
-
-          // Client-side filtering
-          let filtered = list.filter((doc) => {
-            if (q) {
-              const s = (
-                doc.name ||
-                doc.fullName ||
-                doc.clinic ||
-                ""
-              ).toLowerCase();
-              const addr = (doc.address || "").toLowerCase();
-              if (
-                !s.includes(q.toLowerCase()) &&
-                !addr.includes(q.toLowerCase())
-              )
-                return false;
-            }
-            if (specialty) {
-              if (!doc.specialty) return false;
-              if (
-                !doc.specialty.toLowerCase().includes(specialty.toLowerCase())
-              )
-                return false;
-            }
-            if (minRating && doc.rating && Number(doc.rating) < minRating) {
-              return false;
-            }
-            if (center && maxDistance && doc.location && doc.location.lat) {
-              const d = distanceKm(
-                center.lat,
-                center.lng,
-                doc.location.lat,
-                doc.location.lng
-              );
-              if (d > maxDistance) return false;
-              doc._distance = d;
-            }
-            return true;
-          });
-
-          // Sort by distance if available
-          if (center) {
-            filtered.sort((a, b) => {
-              const da = a._distance || 99999;
-              const db = b._distance || 99999;
-              return da - db;
-            });
-          }
-
-          renderDoctors(filtered, center);
-          status.textContent = `${filtered.length} result(s)`;
+        function addDoctorMarker(doc, location) {
+          if (!location) return;
+          const marker = L.marker([location.lat, location.lng]).addTo(map);
+          const popupHtml = `<strong>${escapeHtml(
+            doc.user?.username || "Unknown"
+          )}</strong><br/>${escapeHtml(
+            doc.specialization || ""
+          )}<br/>${escapeHtml(doc.hospital?.address || doc.address || "")}`;
+          marker.bindPopup(popupHtml);
+          doctorMarkers.push(marker);
         }
 
-        // Hook search UI
-        document.addEventListener("DOMContentLoaded", () => {
-          initMap();
-          const searchBtn = document.getElementById("doc-search-btn");
-          const clearBtn = document.getElementById("doc-clear-btn");
-          if (searchBtn)
-            searchBtn.addEventListener("click", (e) => {
-              e.preventDefault();
-              searchDoctors();
-            });
-          if (clearBtn) {
-            clearBtn.addEventListener("click", (e) => {
-              e.preventDefault();
-              document.getElementById("doc-search").value = "";
-              document.getElementById("doc-specialty").value = "";
-              document.getElementById("doc-distance").value = "10";
-              document.getElementById("doc-rating").value = "0";
-              document.getElementById("doc-status").textContent = "";
-              document.getElementById("doctor-results").innerHTML = "";
-              clearMarkers();
-              if (map && userLocation)
-                map.setView([userLocation.lat, userLocation.lng], 12);
-            });
+        async function fetchAndRenderDoctors() {
+          clearMarkers();
+          allDoctors = (await fetchJson("/api/doctors")) || [];
+          for (const doc of allDoctors) {
+            const addr = doc.hospital?.address || doc.address || "";
+            const loc = await geocodeAddress(addr);
+            addDoctorMarker(doc, loc);
           }
+        }
 
-          // also run search when opening the search tab
-          const searchLink = document.querySelector('a[data-section="search"]');
-          if (searchLink) {
-            searchLink.addEventListener("click", () => {
-              // small delay to ensure map container visible
-              setTimeout(() => {
-                initMap();
-                map.invalidateSize();
-                searchDoctors();
-              }, 200);
+        function initMap() {
+          if (map) return;
+          map = L.map("doctor-map").setView([0, 0], 2);
+          L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution:
+              '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          }).addTo(map);
+          if (navigator.geolocation)
+            navigator.geolocation.getCurrentPosition((pos) => {
+              userLocation = {
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+              };
+              map.setView([userLocation.lat, userLocation.lng], 12);
             });
-          }
+        }
 
-          // Initialize map size if section is active initially
-          if (document.querySelector('a[data-section="search"].active')) {
-            setTimeout(() => {
-              initMap();
-              map.invalidateSize();
-            }, 200);
-          }
-        });
+        document
+          .querySelector('a[data-section="search"]')
+          ?.addEventListener("click", () => {
+            initMap();
+            fetchAndRenderDoctors();
+          });
       })();
     </script>
   </body>

@@ -6,6 +6,8 @@ import lombok.Setter;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 @Entity
 @Getter
 @Setter
@@ -21,6 +23,6 @@ public class Lab {
     private String specialty; // e.g. blood test, x-ray
 
     @OneToMany(mappedBy = "lab")
+    @JsonManagedReference
     private List<LabResult> results;
 }
-

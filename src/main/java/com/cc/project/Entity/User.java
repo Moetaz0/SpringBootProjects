@@ -1,5 +1,7 @@
 package com.cc.project.Entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,12 +16,17 @@ public class User {
     private Long id;
 
     private String username;
+
     private String email;
+
     private String phoneNumber;
+    @JsonIgnore
     private String password;
 
     // Password reset flow fields
+    @JsonIgnore
     private String resetCode;
+    @JsonIgnore
     private java.time.Instant resetCodeExpiry;
 
     @Enumerated(EnumType.STRING)

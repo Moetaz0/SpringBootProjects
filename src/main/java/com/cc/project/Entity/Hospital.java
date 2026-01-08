@@ -6,6 +6,8 @@ import lombok.Setter;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 @Entity
 @Getter
 @Setter
@@ -20,5 +22,6 @@ public class Hospital {
     private double longitude;
 
     @OneToMany(mappedBy = "hospital")
+    @JsonManagedReference
     private List<Doctor> doctors;
 }

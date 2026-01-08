@@ -523,7 +523,8 @@
               localStorage.setItem("authType", type);
               localStorage.setItem("rememberMe", rememberMe ? "1" : "0");
             }
-
+            console.log("Login successful, redirecting...");
+            console.log(token);
             const redirect = data.redirect || "/dashboard/client";
             window.location.href = redirect;
             window.location.replace(redirect);

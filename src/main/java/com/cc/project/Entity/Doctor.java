@@ -6,6 +6,8 @@ import lombok.Setter;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 @Getter
 @Setter
 @Entity
@@ -16,13 +18,14 @@ public class Doctor {
 
     private String specialization;
     private String bio;
-
+    private String address;
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
 
     @ManyToOne
     @JoinColumn(name = "hospital_id")
+    @JsonBackReference
     private Hospital hospital;
 
     @OneToMany(mappedBy = "doctor")
